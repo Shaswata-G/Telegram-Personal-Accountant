@@ -1,0 +1,210 @@
+{
+  "name": "telegram accountant",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2b205e19-944f-4585-8433-fd8af64ef90e",
+      "name": "Telegram Trigger",
+      "webhookId": "f3b84d35-ccbf-4e68-b081-660e098b800d",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZxEeJasA7tWHFn44",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Select the {{ $json.message.text }} string and turn it into a n8n table format output",
+        "options": {
+          "systemMessage": "=## Role: You are a Telegram-based personal accountant.\n## Job: Extract values from each {{ $json.message.text }} and create a table by                  extracting values.\n## Resources: {{ $json.message.text }}\n\n1. Date – in `YYYY-MM-DD` format (use today’s date if not given, today's Date is {{ $json.message.date }}, convert it to `YYYY-MM-DD`).\n2. Price – numeric value with currency if present.\n3. Tags – optional, comma-separated keywords.\n   \nReturn the result as: \n    [{`YYYY-MM_DD`}], [{`0.0`}], [{`Item 1`}]\nDo not add any extra text other than the extracted values. not even JSON syntax."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "be0dc182-a941-41a3-9f89-7806d040ef8b",
+      "name": "AI Agent",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        16,
+        352
+      ],
+      "id": "a3252525-6587-4ba0-ad28-37e3fecd44b0",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "nimmAb3FLNCDMdgg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FYkqmY_LRk3y6sfKKeCAsVmmMHb8bY16C5hR7E_y2jw",
+          "mode": "list",
+          "cachedResultName": "Demo Document",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FYkqmY_LRk3y6sfKKeCAsVmmMHb8bY16C5hR7E_y2jw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FYkqmY_LRk3y6sfKKeCAsVmmMHb8bY16C5hR7E_y2jw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.date }}",
+            "Price": "={{ $json.price }}",
+            "Tags(Optional)": "={{ $json.tags }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tags(Optional)",
+              "displayName": "Tags(Optional)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        800,
+        0
+      ],
+      "id": "03a5252f-33c0-4a5b-be35-7e9e4838e32b",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0do3P0y2NTWeWR0A",
+          "name": "Demo Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output;\n\n// Remove {, [, ], }, and \" characters, then split by comma\nconst cleaned = raw\n  .replace(/[\\[\\]{}\"]/g, '') // removes brackets, braces, and quotes\n  .split(',')\n  .map(v => v.trim()); // trims spaces\n\n// Build structured output\nconst row = {\n  date: cleaned[0],\n  price: cleaned[1],\n  tags: cleaned[2]\n};\n\nreturn [{ json: row }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "51557286-1a73-47cd-ba58-f1e86c7e6c2b",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7dce7eb6-ddd1-4290-9c13-e27746abfae1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "db6d51bee95631a2b979f123b833af24a328f4d2178e8aff4b95458cbee18a5c"
+  },
+  "id": "8NCxgQRYa0RbB92K",
+  "tags": []
+}
